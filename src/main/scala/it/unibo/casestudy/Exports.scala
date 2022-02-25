@@ -8,17 +8,30 @@ object Exports {
   case class NumericValueExport[T: Numeric](
       when: Instant,
       each: FiniteDuration,
-      name: String,
+      extract: CONTEXT => T,
       trace: ExperimentTrace[T] = new ExperimentTrace[T]()
   ) extends Event {
     override def act(network: DesIncarnation.NetworkSimulator): Option[DesIncarnation.Event] = {
       val exportData = network.ids.toList
         .map(network.context)
-        .map(_.sense[T](name).get)
+        .map(c => extract(c))
+        .filter(Numeric[T].toDouble(_).isFinite)
         .sum
       trace.record(when, exportData)
       Some(this.copy(when = when.plusMillis(each.toMillis)))
     }
     override val priority: DesIncarnation.Priority = High
+  }
+  object NumericValueExport {
+    def fromSensor[T: Numeric](when: Instant, each: FiniteDuration, name: String): NumericValueExport[T] =
+      NumericValueExport(when, each, c => c.sense[T](name).get)
+
+    def export[T: Numeric](when: Instant, each: FiniteDuration): NumericValueExport[T] =
+      NumericValueExport(
+        when,
+        each,
+        context =>
+          context.exports().filter(_._1 == context.selfId).map(_._2.root[T]()).headOption.getOrElse(Numeric[T].zero)
+      )
   }
 }
