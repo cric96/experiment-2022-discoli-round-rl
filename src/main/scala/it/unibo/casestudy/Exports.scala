@@ -6,8 +6,7 @@ import scala.concurrent.duration.FiniteDuration
 object Exports {
   case class ExportCountEvent(when: Instant, each: FiniteDuration) extends Event {
     override def act(network: DesIncarnation.NetworkSimulator): Option[DesIncarnation.Event] = {
-      val fireCount = network.ids
-        .toList
+      val fireCount = network.ids.toList
         .map(network.context)
         .map(_.sense[Int](ExperimentConstant.RoundCount).get)
         .sum

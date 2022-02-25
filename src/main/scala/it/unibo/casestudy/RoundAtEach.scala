@@ -7,7 +7,11 @@ case class RoundAtEach(node: ID, program: EXECUTION, when: Instant, dt: FiniteDu
   override def act(network: DesIncarnation.NetworkSimulator): Option[DesIncarnation.Event] = {
     network.progress(node, program)
     val context = network.context(node)
-    network.chgSensorValue(ExperimentConstant.RoundCount, Set(node), context.sense[Int](ExperimentConstant.RoundCount).get + 1)
+    network.chgSensorValue(
+      ExperimentConstant.RoundCount,
+      Set(node),
+      context.sense[Int](ExperimentConstant.RoundCount).get + 1
+    )
     Option(this.copy(when = when.plusMillis(dt.toMillis)))
   }
 }
