@@ -1,19 +1,20 @@
-package it.unibo.casestudy
+package it.unibo.casestudy.event
 
-import it.unibo.casestudy.DesIncarnation._
-
+import it.unibo.casestudy.DesIncarnation.{EXECUTION, EXPORT, ID}
+import it.unibo.casestudy.{DesIncarnation, ExperimentConstant}
+import DesIncarnation._
 import java.time.Instant
 import scala.concurrent.duration.FiniteDuration
 
 case class AdjustableEvaluation(
-    node: ID,
-    program: EXECUTION,
-    when: Instant,
-    dt: FiniteDuration,
-    maxDt: FiniteDuration,
-    startWith: FiniteDuration,
-    val localData: Option[EXPORT] = None
-) extends RoundEvent {
+                                 node: ID,
+                                 program: EXECUTION,
+                                 when: Instant,
+                                 dt: FiniteDuration,
+                                 maxDt: FiniteDuration,
+                                 startWith: FiniteDuration,
+                                 val localData: Option[EXPORT] = None
+                               ) extends RoundEvent {
   override def act(network: DesIncarnation.NetworkSimulator): Option[DesIncarnation.Event] = {
     network.progress(node, program)
     val netExport: Option[EXPORT] = network.`export`(node)

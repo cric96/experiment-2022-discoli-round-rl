@@ -6,3 +6,5 @@ lazy val root = (project in file("."))
   .settings(
     name := "experiment-discoli-ac-round-rl"
   )
+
+libraryDependencies += "io.github.pityka" %% "nspl-awt" % "0.3.0"

@@ -1,6 +1,7 @@
 package it.unibo.casestudy
 
 import it.unibo.casestudy.DesIncarnation._
+import it.unibo.casestudy.event.AdjustableEvaluation
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -19,7 +20,7 @@ object AdjustableEvaluationTest extends App {
   des.stopWhen(des.now.plusMillis(totalTime.toMillis))
   des.schedule(ChangeSourceAt(des.now.plusMillis((40 seconds).toMillis), leftmost, false))
   des.schedule(ChangeSourceAt(des.now.plusMillis((40 seconds).toMillis), rightmost, true))
-  des.schedule(Exports.ExportCountEvent(des.now, 1 seconds))
+  des.schedule(Exports.NumericValueExport[Int](des.now, 1 seconds, ExperimentConstant.RoundCount))
   DesUtils.consume(des)
   println(des.now.toEpochMilli)
   println(des.count)
