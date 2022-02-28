@@ -1,7 +1,7 @@
 package it.unibo.casestudy
 import it.unibo.casestudy.DesIncarnation._
-import it.unibo.casestudy.event.{AdjustableEvaluation, RoundAtEach}
-import it.unibo.casestudy.utils.ExperimentTrace
+import it.unibo.casestudy.event.{AdjustableEvaluation, ChangeSourceAt, RoundAtEach}
+import it.unibo.casestudy.utils.{DesUtils, ExperimentTrace}
 
 import java.time.Instant
 import scala.concurrent.duration._
@@ -25,7 +25,7 @@ object SimulationTest extends App {
     val roundCount = Exports.NumericValueExport.fromSensor[Int](des.now, 1 seconds, ExperimentConstant.RoundCount)
     val totalGradient = Exports.NumericValueExport.`export`[Double](des.now, 1 seconds)
     val turnOffLeft = ChangeSourceAt(des.now.plusMillis(switchTime.toMillis), leftmost, value = false)
-    val turnOnRight = ChangeSourceAt(des.now.plusMillis(switchTime.toMillis), rightmost, value = true)
+    val turnOnRight = event.ChangeSourceAt(des.now.plusMillis(switchTime.toMillis), rightmost, value = true)
     des.schedule(roundCount)
     des.schedule(totalGradient)
     des.schedule(turnOffLeft)

@@ -1,4 +1,6 @@
-package it.unibo.casestudy
+package it.unibo.casestudy.utils
+
+import it.unibo.casestudy.DesIncarnation
 
 object DesUtils {
   def consume(des: DesIncarnation.DesSimulator): Unit =
