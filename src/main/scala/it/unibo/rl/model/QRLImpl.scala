@@ -20,19 +20,19 @@ trait QRLImpl[S, A] extends QRL[S, A] with Serializable {
   ) extends Q
       with Serializable {
     val map: collection.mutable.Map[(S, A), R] = collection.mutable.Map()
-    override def apply(s: S, a: A) = if (terminal(s)) terminalValue else map.getOrElse(s -> a, v0)
+    override def apply(s: S, a: A): R = if (terminal(s)) terminalValue else map.getOrElse(s -> a, v0)
     override def update(s: S, a: A, v: Double): Q = { map += ((s -> a) -> v); this }
-    override def toString = map.toString
+    override def toString: String = map.toString
   }
 
-  case class RealtimeQLearning(gamma: Double, q0: Q) {
+  case class RealtimeQLearning(gamma: Double, q0: Q, parameter: QLParameter) {
     private var state: Option[S] = None
     private var action: Option[A] = None
 
     def setState(s: S): Unit = state = Some(s)
     def takeAction(a: A): Unit = action = Some(a)
     def takeEpsGreedyAction(qf: Q, time: Double)(implicit rand: Random): A = {
-      val epsilon = QLParameter(0, time).epsilon
+      val epsilon = parameter.epsilon(time)
       //println(s"epsilon value: $epsilon at time $time, st: ${state.get}")
       val a = qf.explorationPolicy(epsilon)(rand)(state.get)
       takeAction(a)
@@ -41,7 +41,7 @@ trait QRLImpl[S, A] extends QRL[S, A] with Serializable {
 
     def takeGreedyAction(qf: Q): A = qf.greedyPolicy(state.get)
     def observeEnvAndUpdateQ(qf: Q, newState: S, reward: R, time: Double): Q = try {
-      val alpha = QLParameter(0, time).alpha
+      val alpha = parameter.alpha(time)
       //println(s"alpha value $alpha at time $time")
       (for {
         s <- state
@@ -52,7 +52,6 @@ trait QRLImpl[S, A] extends QRL[S, A] with Serializable {
         // By book
         val update = reward + gamma * qf.optimalVFunction(newState) - qf(s, a)
         val vr = qf(s, a) + update * alpha
-
         //println(s"State: $s, Action: $a, Value: $vr, Alpha: $alpha, Pair: ${qf(s,a)}, optimal: ${qf.optimalVFunction(newState)} ")
         //println(s"Value: $vr, optimal: ${qf.optimalVFunction(newState)} ")
         qf.update(s, a, vr)

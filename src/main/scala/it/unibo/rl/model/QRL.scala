@@ -1,7 +1,5 @@
 package it.unibo.rl.model
 
-import Stochastics._
-
 import scala.util.Random
 
 trait QRL[S, A] {
@@ -29,8 +27,14 @@ trait QRL[S, A] {
 }
 
 object QRL {
-  case class QLParameter(value: Double, t: Double) {
-    def epsilon = 0.01 // Math.min(0.9, 0.00 + (1- 0.00) * math.exp(-0.4 * (t/ 20.0)))
-    def alpha = 0.9 // Math.max(0.05, Math.min(0.5, 0.1 - Math.log10((t+1)/100.0))) //
+  trait QLParameter {
+    def epsilon(time: Double): Double
+    def alpha(time: Double): Double
   }
+
+  case class StaticParameters(epsilon: Double, alpha: Double) extends QLParameter {
+    def epsilon(time: Double): Double = epsilon // Math.min(0.9, 0.00 + (1- 0.00) * math.exp(-0.4 * (t/ 20.0)))
+    def alpha(time: Double): Double = alpha // Math.max(0.05, Math.min(0.5, 0.1 - Math.log10((t+1)/100.0))) //
+  }
+
 }
