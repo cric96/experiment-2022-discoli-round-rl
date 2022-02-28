@@ -60,11 +60,12 @@ object SimulationTest extends App {
   )
 
   val frequencyPlot = xyplot(
-    //(fixedFrequencyPlot.toList, List(line(color = Color.red)), InLegend("Periodic")),
+    (fixedFrequencyPlot.toList, List(line(color = Color.red)), InLegend("Periodic")),
     (adjustableFrequencyPlot.toList, List(line(color = Color.blue)), InLegend("Adjustable"))
   )(
     par(xlab = "time", ylab = "total frequency")
   )
 
-  show(sequence(List(outputPlot, frequencyPlot), TableLayout(2)))
+  val path = renderToFile(sequence(List(outputPlot, frequencyPlot), TableLayout(2))).toPath
+  os.copy.over(os.Path(path), os.pwd / "image.png")
 }
