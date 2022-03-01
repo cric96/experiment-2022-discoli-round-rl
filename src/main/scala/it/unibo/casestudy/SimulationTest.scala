@@ -1,6 +1,6 @@
 package it.unibo.casestudy
 import it.unibo.casestudy.DesIncarnation._
-import it.unibo.casestudy.event.{AdjustableEvaluation, ChangeSourceAt, RoundAtEach}
+import it.unibo.casestudy.event.{AdjustableEvaluation, ChangeSourceAt, RLRoundEvaluation, RoundAtEach}
 import it.unibo.casestudy.utils.{DesUtils, ExperimentTrace}
 
 import java.time.Instant
@@ -37,9 +37,11 @@ object SimulationTest extends App {
   }
 
   val (standardFrequency, gradientStandard) =
-    newSimulator(id => RoundAtEach(id, new GradientProgram, Instant.ofEpochMilli(0), delta))
-  val (adjustableFrequency, adjustableGradient) =
     newSimulator(id => AdjustableEvaluation(id, new GradientProgram, Instant.ofEpochMilli(0), delta, 2 seconds, delta))
+  val (adjustableFrequency, adjustableGradient) =
+    newSimulator(id => new RLRoundEvaluation(id, new GradientProgram, Instant.ofEpochMilli(0)))
+
+  // AdjustableEvaluation(id, new GradientProgram, Instant.ofEpochMilli(0), delta, 2 seconds, delta)
 
   val fixedOutputPlot = gradientStandard.values.map { case (time, data) => time.getEpochSecond.toDouble -> data }
   val adjustableOutputPlot = adjustableGradient.values.map { case (time, data) =>

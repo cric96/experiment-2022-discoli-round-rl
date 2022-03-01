@@ -18,7 +18,7 @@ trait QRL[S, A] {
     def epsilonGreedyPolicy(epsilon: P)(implicit rand: Random): Policy = explorationPolicy(epsilon)
 
     def explorationPolicy(f: P)(implicit rand: Random): Policy = {
-      case s if Stochastics.drawFiltered(_ < f) => Stochastics.uniformDraw(actions)
+      case _ if Stochastics.drawFiltered(_ < f) => Stochastics.uniformDraw(actions)
       case s => greedyPolicy(s)
     }
 
@@ -28,13 +28,9 @@ trait QRL[S, A] {
 
 object QRL {
   trait QLParameter {
-    def epsilon(time: Double): Double
-    def alpha(time: Double): Double
+    def epsilon: Double
+    def alpha: Double
   }
 
-  case class StaticParameters(epsilon: Double, alpha: Double) extends QLParameter {
-    def epsilon(time: Double): Double = epsilon // Math.min(0.9, 0.00 + (1- 0.00) * math.exp(-0.4 * (t/ 20.0)))
-    def alpha(time: Double): Double = alpha // Math.max(0.05, Math.min(0.5, 0.1 - Math.log10((t+1)/100.0))) //
-  }
-
+  case class StaticParameters(epsilon: Double, alpha: Double) extends QLParameter
 }

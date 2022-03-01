@@ -31,8 +31,8 @@ trait QRLImpl[S, A] extends QRL[S, A] with Serializable {
 
     def setState(s: S): Unit = state = Some(s)
     def takeAction(a: A): Unit = action = Some(a)
-    def takeEpsGreedyAction(qf: Q, time: Double)(implicit rand: Random): A = {
-      val epsilon = parameter.epsilon(time)
+    def takeEpsGreedyAction(qf: Q)(implicit rand: Random): A = {
+      val epsilon = parameter.epsilon
       //println(s"epsilon value: $epsilon at time $time, st: ${state.get}")
       val a = qf.explorationPolicy(epsilon)(rand)(state.get)
       takeAction(a)
@@ -40,15 +40,15 @@ trait QRLImpl[S, A] extends QRL[S, A] with Serializable {
     }
 
     def takeGreedyAction(qf: Q): A = qf.greedyPolicy(state.get)
-    def observeEnvAndUpdateQ(qf: Q, newState: S, reward: R, time: Double): Q = try {
-      val alpha = parameter.alpha(time)
+    def observeEnvAndUpdateQ(qf: Q, newState: S, reward: R): Q = try {
+      val alpha = parameter.alpha
       //println(s"alpha value $alpha at time $time")
       (for {
         s <- state
         a <- action
       } yield {
         // By wikipedia (weighted average)
-        //val vr = (1 - alpha) * qf(s, a) + alpha * (reward + gamma * qf.optimalVFunction(newState))
+        // val vr = (1 - alpha) * qf(s, a) + alpha * (reward + gamma * qf.optimalVFunction(newState))
         // By book
         val update = reward + gamma * qf.optimalVFunction(newState) - qf(s, a)
         val vr = qf(s, a) + update * alpha
