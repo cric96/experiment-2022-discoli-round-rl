@@ -1,7 +1,7 @@
 package it.unibo.casestudy
 import it.unibo.casestudy.DesIncarnation._
 import it.unibo.casestudy.event.{AdjustableEvaluation, ChangeSourceAt, RLRoundEvaluation, RoundAtEach}
-import it.unibo.casestudy.utils.{DesUtils, ExperimentTrace}
+import it.unibo.casestudy.utils.{DesUtils, ExperimentTrace, Memoize}
 
 import java.time.Instant
 import scala.concurrent.duration._
@@ -13,6 +13,7 @@ object SimulationTest extends App {
   val count = 10
   val range = 10
   val delta = 100 milliseconds
+  val sampleFrequency = 1 seconds
   val totalTime = 80 seconds
   val switchTime = totalTime / 2
   val leftmost = 1
@@ -22,8 +23,8 @@ object SimulationTest extends App {
     val world = StandardWorld.withRange(count, count, range, Set(leftmost))
     val des = new DesSimulator(world)
     val fireEvents = des.network.ids.map(fireLogic(_))
-    val roundCount = Exports.NumericValueExport.fromSensor[Int](des.now, 1 seconds, ExperimentConstant.RoundCount)
-    val totalGradient = Exports.NumericValueExport.`export`[Double](des.now, 1 seconds)
+    val roundCount = Exports.NumericValueExport.fromSensor[Int](des.now, sampleFrequency, ExperimentConstant.RoundCount)
+    val totalGradient = Exports.NumericValueExport.`export`[Double](des.now, sampleFrequency)
     val turnOffLeft = ChangeSourceAt(des.now.plusMillis(switchTime.toMillis), leftmost, value = false)
     val turnOnRight = event.ChangeSourceAt(des.now.plusMillis(switchTime.toMillis), rightmost, value = true)
     des.schedule(roundCount)
@@ -37,9 +38,13 @@ object SimulationTest extends App {
   }
 
   val (standardFrequency, gradientStandard) =
-    newSimulator(id => AdjustableEvaluation(id, new GradientProgram, Instant.ofEpochMilli(0), delta, 2 seconds, delta))
+    newSimulator(Memoize[ID, RoundEvent] { id =>
+      AdjustableEvaluation(id, new GradientProgram, Instant.ofEpochMilli(0), delta, 2 seconds, delta)
+    })
   val (adjustableFrequency, adjustableGradient) =
-    newSimulator(id => new RLRoundEvaluation(id, new GradientProgram, Instant.ofEpochMilli(0)))
+    newSimulator(Memoize[ID, RoundEvent] { id =>
+      new RLRoundEvaluation(id, new GradientProgram, Instant.ofEpochMilli(0))
+    })
 
   // AdjustableEvaluation(id, new GradientProgram, Instant.ofEpochMilli(0), delta, 2 seconds, delta)
 
