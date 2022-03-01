@@ -102,9 +102,10 @@ object RLRoundEvaluation {
 
   val QRLFamily: QRLImpl[State, WeakUpAction] = new QRLImpl[State, WeakUpAction] {}
 
-  class Configuration(val gamma: V[Double], val alpha: V[Double], val epsilon: V[Double]) {
-    def update(): Unit = gamma :: alpha :: epsilon :: Nil foreach (_.next())
+  class Configuration(val gamma: V[Double], val alpha: V[Double], val epsilon: V[Double], learn: V[Boolean] = true) {
+    def update(): Unit = gamma :: alpha :: epsilon :: learn :: Nil foreach (_.next())
   }
+
   object Configuration {
     def apply(gamma: V[Double], alpha: V[Double], epsilon: V[Double]): Configuration =
       new Configuration(gamma, alpha, epsilon)

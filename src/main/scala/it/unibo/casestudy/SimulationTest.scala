@@ -1,5 +1,6 @@
 package it.unibo.casestudy
 import it.unibo.casestudy.DesIncarnation._
+import it.unibo.casestudy.event.RLRoundEvaluation.Configuration
 import it.unibo.casestudy.event.{AdjustableEvaluation, ChangeSourceAt, RLRoundEvaluation, RoundAtEach}
 import it.unibo.casestudy.utils.{DesUtils, ExperimentTrace, Memoize}
 
@@ -43,7 +44,7 @@ object SimulationTest extends App {
     })
   val (adjustableFrequency, adjustableGradient) =
     newSimulator(Memoize[ID, RLRoundEvaluation] { id =>
-      new RLRoundEvaluation(id, new GradientProgram, Instant.ofEpochMilli(0))
+      new RLRoundEvaluation(id, new GradientProgram, Instant.ofEpochMilli(0), rlConfig = Configuration(0.9, 0.1, 0.01))
     }.andThen(_.reset()))
 
   // AdjustableEvaluation(id, new GradientProgram, Instant.ofEpochMilli(0), delta, 2 seconds, delta)

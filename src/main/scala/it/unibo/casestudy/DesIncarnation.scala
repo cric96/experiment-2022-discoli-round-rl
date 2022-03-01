@@ -13,5 +13,4 @@ object DesIncarnation
     with StandardLibrary {
   override type P = Point3D
   implicit override val idBounded: DesIncarnation.Builtins.Bounded[Int] = DesIncarnation.Builtins.Bounded.of_i
-  new StandardSensors {}
 }
