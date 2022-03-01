@@ -42,9 +42,9 @@ object SimulationTest extends App {
       AdjustableEvaluation(id, new GradientProgram, Instant.ofEpochMilli(0), delta, 2 seconds, delta)
     })
   val (adjustableFrequency, adjustableGradient) =
-    newSimulator(Memoize[ID, RoundEvent] { id =>
+    newSimulator(Memoize[ID, RLRoundEvaluation] { id =>
       new RLRoundEvaluation(id, new GradientProgram, Instant.ofEpochMilli(0))
-    })
+    }.andThen(_.reset()))
 
   // AdjustableEvaluation(id, new GradientProgram, Instant.ofEpochMilli(0), delta, 2 seconds, delta)
 

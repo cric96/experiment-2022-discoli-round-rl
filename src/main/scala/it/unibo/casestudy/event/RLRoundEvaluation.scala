@@ -1,63 +1,89 @@
 package it.unibo.casestudy.event
-import it.unibo.casestudy.{DesIncarnation, ExperimentConstant}
 import it.unibo.casestudy.DesIncarnation._
-import it.unibo.casestudy.event.RLRoundEvaluation.{Normal, QRLFamily, _}
+import it.unibo.casestudy.event.RLRoundEvaluation.{Normal, _}
+import it.unibo.casestudy.utils.RichDouble._
+import it.unibo.casestudy.utils.Variable.V
+import it.unibo.casestudy.{DesIncarnation, ExperimentConstant}
 import it.unibo.rl.model.{QRL, QRLImpl}
 
 import java.time.Instant
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.language.postfixOps
 import scala.util.Random
-class RLRoundEvaluation(val node: ID, val program: EXECUTION, val when: Instant) extends RoundEvent {
+
+class RLRoundEvaluation(
+    val node: ID,
+    val program: EXECUTION,
+    val when: Instant,
+    val temporalWindow: Int = 5,
+    rlConfig: Configuration
+) extends RoundEvent {
   self =>
-
-  implicit class DoubleWithAlmostEquals(val d: Double) {
-    def default = 0.00001
-    def ~=(d2: Double) = (d - d2).abs < default
-  }
-
-  final private val maxWindow = 5
+  import rlConfig._
   protected var q: QRLFamily.QFunction = QRLFamily.QFunction(Set(EnergySaving, FullSpeed, Normal))
   protected var oldValue: Double = Double.PositiveInfinity
   protected var state: State = State(FullSpeed, Seq.empty[OutputDirection])
   protected var reinforcementLearningProcess: QRLFamily.RealtimeQLearning =
-    QRLFamily.RealtimeQLearning(0.9, q, QRL.StaticParameters(0.05, 0.1))
+    QRLFamily.RealtimeQLearning(gamma, q, QRL.StaticParameters(epsilon, alpha))
 
   override def act(network: DesIncarnation.NetworkSimulator): Option[DesIncarnation.Event] = {
-    val currentHistory = state.history
+    // ARRANGE
     val context = network.context(node)
-    implicit val random = context.sense[Random]("LSNS_RANDOM").get
-    val deltaTime = context.sense[FiniteDuration]("LSNS_DELTA_TIME").get
+    implicit val random: Random = context.sense[Random]("LSNS_RANDOM").get
+    val currentHistory = state.history
     reinforcementLearningProcess.setState(state)
+    // ROUND EVALUATION
     network.progress(node, program)
+    // EVAL
     val currentValue = network.`export`(node).map(_.root[Double]()).getOrElse(Double.PositiveInfinity)
-    val direction = if (currentValue ~= oldValue) {
-      Same
-    } else if (currentValue > oldValue) {
-      RisingUp
-    } else {
-      RisingDown
-    }
-    val action = reinforcementLearningProcess.takeEpsGreedyAction(q)
-    val nextState = State(action, (direction +: currentHistory).take(maxWindow))
-    val reward = if (currentHistory.headOption.getOrElse(Same) != Same) {
-      -1 * (deltaTime / EnergySaving.next)
-    } else {
-      -(1 - (deltaTime / EnergySaving.next))
-    }
-    reinforcementLearningProcess.observeEnvAndUpdateQ(q, nextState, reward)
-    val nextEvent = new RLRoundEvaluation(node, program, when.plusMillis(action.next.toMillis)) {
-      this.oldValue = currentValue
-      this.state = nextState
-      this.q = self.q
-      this.reinforcementLearningProcess = self.reinforcementLearningProcess
-    }
+    val direction = outputTemporalDirection(currentValue)
+    val action = reinforcementLearningProcess.takeEpsGreedyAction(q) // todo pass learn condition
+    val nextState = State(action, (direction +: currentHistory).take(temporalWindow))
+    val rewardValue = reward(context)
+    // IMPROVE
+    reinforcementLearningProcess.observeEnvAndUpdateQ(q, nextState, rewardValue)
+    // ACT
+    val nextEvent =
+      new RLRoundEvaluation(node, program, when.plusMillis(action.next.toMillis), temporalWindow, rlConfig) {
+        this.oldValue = currentValue
+        this.state = nextState
+        this.q = self.q
+        this.reinforcementLearningProcess = self.reinforcementLearningProcess
+      }
     network.chgSensorValue(
       ExperimentConstant.RoundCount,
       Set(node),
       network.context(node).sense[Int](ExperimentConstant.RoundCount).get + 1
     )
     Some(nextEvent)
+  }
+
+  def reset(): RLRoundEvaluation = {
+    oldValue = Double.PositiveInfinity
+    state = State(FullSpeed, Seq.empty[OutputDirection])
+    this
+  }
+
+  def updateVariables(): RLRoundEvaluation = {
+    rlConfig.update()
+    this
+  }
+
+  private def reward(context: Context): Double = {
+    val deltaTime = context.sense[FiniteDuration]("LSNS_DELTA_TIME").get
+    if (state.history.headOption.getOrElse(Same) != Same) {
+      -1 * (deltaTime / EnergySaving.next)
+    } else {
+      -(1 - (deltaTime / EnergySaving.next))
+    }
+  }
+
+  private def outputTemporalDirection(current: Double): OutputDirection = if (current ~= oldValue) {
+    Same
+  } else if (current > oldValue) {
+    RisingUp
+  } else {
+    RisingDown
   }
 }
 
@@ -72,15 +98,15 @@ object RLRoundEvaluation {
   object RisingUp extends OutputDirection
   object RisingDown extends OutputDirection
 
-  def fromSign(sign: Int): OutputDirection = if (sign == 0) {
-    Same
-  } else if (sign > 0) {
-    RisingUp
-  } else {
-    RisingDown
-  }
   case class State(currentSetting: WeakUpAction, history: Seq[OutputDirection])
 
   val QRLFamily: QRLImpl[State, WeakUpAction] = new QRLImpl[State, WeakUpAction] {}
-  val globalQ = QRLFamily.QFunction(Set(EnergySaving, FullSpeed, Normal))
+
+  class Configuration(val gamma: V[Double], val alpha: V[Double], val epsilon: V[Double]) {
+    def update(): Unit = gamma :: alpha :: epsilon :: Nil foreach (_.next())
+  }
+  object Configuration {
+    def apply(gamma: V[Double], alpha: V[Double], epsilon: V[Double]): Configuration =
+      new Configuration(gamma, alpha, epsilon)
+  }
 }
