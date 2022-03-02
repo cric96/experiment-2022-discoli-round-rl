@@ -30,7 +30,7 @@ class GradientSimulation(fireLogic: ID => RoundEvent, config: SimulationConfigur
     des.schedule(totalGradient)
     des.schedule(turnOnRight)
     fireEvents.foreach(des.schedule)
-    des.stopWhen(des.now.plusMillis(endWhen.toMillis))
+    des.stopWhen(des.now.plusMillis(endWhen.toMillis).plusNanos(1)) // enable safe conclusion
     DesUtils.consume(des)
     (roundCount.trace, totalGradient.trace)
   }

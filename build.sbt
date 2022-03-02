@@ -9,3 +9,5 @@ lazy val root = (project in file("."))
 
 libraryDependencies += "io.github.pityka" %% "nspl-awt" % "0.3.0"
 libraryDependencies += "com.lihaoyi" %% "os-lib" % "0.8.0"
+libraryDependencies += "com.outr" %% "scribe" % "3.8.0"
+libraryDependencies += "com.github.tototoshi" %% "scala-csv" % "1.3.10"
