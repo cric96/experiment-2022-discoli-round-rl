@@ -42,6 +42,7 @@ trait QRLImpl[S, A] extends QRL[S, A] with Serializable {
     def takeGreedyAction(qf: Q): A = qf.greedyPolicy(state.get)
     def observeEnvAndUpdateQ(qf: Q, newState: S, reward: R): Q = try {
       val alpha = parameter.alpha
+      val beta = parameter.beta
       //println(s"alpha value $alpha at time $time")
       (for {
         s <- state
@@ -51,7 +52,11 @@ trait QRLImpl[S, A] extends QRL[S, A] with Serializable {
         // val vr = (1 - alpha) * qf(s, a) + alpha * (reward + gamma * qf.optimalVFunction(newState))
         // By book
         val update = reward + gamma * qf.optimalVFunction(newState) - qf(s, a)
-        val vr = qf(s, a) + update * alpha
+        val vr = qf(s, a) + update * (if (update > 0) {
+                                        alpha
+                                      } else {
+                                        beta
+                                      })
         //println(s"State: $s, Action: $a, Value: $vr, Alpha: $alpha, Pair: ${qf(s,a)}, optimal: ${qf.optimalVFunction(newState)} ")
         //println(s"Value: $vr, optimal: ${qf.optimalVFunction(newState)} ")
         qf.update(s, a, vr)

@@ -7,7 +7,8 @@ trait Simulation[E] {
       .continually(perform())
       .zipWithIndex
       .tapEach { case (index, elem) => progressEvaluation(index, elem) }
+      .tapEach(_ => updateAfter())
       .map(_._1)
       .take(times)
-
+  def updateAfter(): Unit
 }

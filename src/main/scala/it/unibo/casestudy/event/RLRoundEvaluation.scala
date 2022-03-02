@@ -24,11 +24,13 @@ class RLRoundEvaluation(
   protected var oldValue: Double = Double.PositiveInfinity
   protected var state: State = State(FullSpeed, Seq.empty[OutputDirection])
   protected var reinforcementLearningProcess: QRLFamily.RealtimeQLearning =
-    QRLFamily.RealtimeQLearning(gamma, q, QRL.StaticParameters(epsilon, alpha))
+    QRLFamily.RealtimeQLearning(gamma, q, QRL.StaticParameters(epsilon, alpha, beta))
 
   override def act(network: DesIncarnation.NetworkSimulator): Option[DesIncarnation.Event] = {
     // ARRANGE
     val context = network.context(node)
+    // PAY ATTENTION! THE DELTA TIME MUST BE PERCEIVED BEFORE THE ROUND EXECUTION!
+    val deltaTime = context.sense[FiniteDuration]("LSNS_DELTA_TIME").get
     implicit val random: Random = context.sense[Random]("LSNS_RANDOM").get
     val currentHistory = state.history
     reinforcementLearningProcess.setState(state)
@@ -43,7 +45,7 @@ class RLRoundEvaluation(
       reinforcementLearningProcess.takeGreedyAction(q)
     }
     val nextState = State(action, (direction +: currentHistory).take(temporalWindow))
-    val rewardValue = reward(context)
+    val rewardValue = reward(context, deltaTime)
     // IMPROVE
     if (learn) { reinforcementLearningProcess.observeEnvAndUpdateQ(q, nextState, rewardValue) }
     // ACT
@@ -64,6 +66,7 @@ class RLRoundEvaluation(
 
   def reset(): RLRoundEvaluation = {
     oldValue = Double.PositiveInfinity
+    reinforcementLearningProcess = QRLFamily.RealtimeQLearning(gamma, q, QRL.StaticParameters(epsilon, alpha, beta))
     state = State(FullSpeed, Seq.empty[OutputDirection])
     this
   }
@@ -73,10 +76,9 @@ class RLRoundEvaluation(
     this
   }
 
-  private def reward(context: Context): Double = {
-    val deltaTime = context.sense[FiniteDuration]("LSNS_DELTA_TIME").get
+  private def reward(context: Context, deltaTime: FiniteDuration): Double = {
     if (state.history.headOption.getOrElse(Same) != Same) {
-      -1 * (deltaTime / EnergySaving.next)
+      -100 * (deltaTime / EnergySaving.next)
     } else {
       -(1 - (deltaTime / EnergySaving.next))
     }
@@ -93,14 +95,14 @@ class RLRoundEvaluation(
 
 object RLRoundEvaluation {
   sealed abstract class WeakUpAction(val next: FiniteDuration)
-  object EnergySaving extends WeakUpAction(1 seconds)
-  object FullSpeed extends WeakUpAction(100 milliseconds)
-  object Normal extends WeakUpAction(200 milliseconds)
+  case object EnergySaving extends WeakUpAction(1 seconds)
+  case object FullSpeed extends WeakUpAction(100 milliseconds)
+  case object Normal extends WeakUpAction(200 milliseconds)
 
   trait OutputDirection
-  object Same extends OutputDirection
-  object RisingUp extends OutputDirection
-  object RisingDown extends OutputDirection
+  case object Same extends OutputDirection
+  case object RisingUp extends OutputDirection
+  case object RisingDown extends OutputDirection
 
   case class State(currentSetting: WeakUpAction, history: Seq[OutputDirection])
 
@@ -109,14 +111,21 @@ object RLRoundEvaluation {
   class Configuration(
       val gamma: V[Double],
       val alpha: V[Double],
+      val beta: V[Double],
       val epsilon: V[Double],
       val learn: V[Boolean] = true
   ) {
-    def update(): Unit = gamma :: alpha :: epsilon :: learn :: Nil foreach (_.next())
+    def update(): Unit = gamma :: alpha :: epsilon :: learn :: beta :: Nil foreach (_.next())
   }
 
   object Configuration {
-    def apply(gamma: V[Double], alpha: V[Double], epsilon: V[Double], learn: V[Boolean] = true): Configuration =
-      new Configuration(gamma, alpha, epsilon, learn)
+    def apply(
+        gamma: V[Double],
+        alpha: V[Double],
+        beta: V[Double],
+        epsilon: V[Double],
+        learn: V[Boolean] = true
+    ): Configuration =
+      new Configuration(gamma, alpha, beta, epsilon, learn)
   }
 }

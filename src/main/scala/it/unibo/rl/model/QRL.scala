@@ -30,7 +30,8 @@ object QRL {
   trait QLParameter {
     def epsilon: Double
     def alpha: Double
+    def beta: Double
   }
 
-  case class StaticParameters(epsilon: Double, alpha: Double) extends QLParameter
+  case class StaticParameters(epsilon: Double, alpha: Double, beta: Double) extends QLParameter
 }

@@ -26,10 +26,10 @@ object Main extends App {
   if (os.exists(resultFolder)) { os.remove.all(resultFolder) }
   os.makeDir.all(resultFolder)
 
-  val initialEps = 0.05
-  val trainingEpisodes = 95
+  val initialEps = 0.2
+  val trainingEpisodes = 500
   val greedy = 1
-  def epsilon() = initialEps
+  def epsilon() = Variable.linearDecay(initialEps, initialEps / trainingEpisodes)
   def learn() = Variable.changeAfter(trainingEpisodes, true, false)
   val delta = 100 milliseconds
 
@@ -42,7 +42,7 @@ object Main extends App {
   val (adjustableFrequency, gradientAdjustable) =
     new GradientSimulation(
       fireLogic = id => AdjustableEvaluation(id, new GradientProgram, Instant.ofEpochMilli(0), delta, 2 seconds, delta),
-      config = SimulationConfiguration()
+      config = SimulationConfiguration(seeds = Variable.evolveWith(Seeds(0, 0, 0), i => Seeds(i, i, i)))
     ).perform()
 
   val rlRoundFunction = Memoize[ID, RLRoundEvaluation] { id =>
@@ -50,19 +50,26 @@ object Main extends App {
       id,
       new GradientProgram,
       Instant.ofEpochMilli(0),
-      rlConfig = Configuration(0.9, 0.1, epsilon(), learn())
+      rlConfig = Configuration(gamma = 0.99, alpha = 0.1, beta = 0.1, epsilon(), learn()),
+      temporalWindow = 5
     )
   }.andThen(_.updateVariables().reset())
 
-  def totalError(reference: ExperimentTrace[Double], rl: ExperimentTrace[Double]): Double = reference.values
-    .map(_._2)
-    .zip(rl.values.map(_._2))
-    .map { case (correct, rl) =>
-      Math.pow(correct - rl, 2)
-    }
-    .sum / gradientStandard.values.size
+  def totalError(reference: ExperimentTrace[Double], rl: ExperimentTrace[Double]): Double = Math.sqrt(
+    reference.values
+      .map(_._2)
+      .zip(rl.values.map(_._2))
+      .map { case (correct, rl) =>
+        Math.pow(correct - rl, 2)
+      }
+      .sum / gradientStandard.values.size
+  )
 
   def plot(rlGradient: ExperimentTrace[Double], rlTicks: ExperimentTrace[Int], label: String = ""): Unit = {
+    def tickPerSeconds(trace: ExperimentTrace[Int]): Seq[Double] = {
+      val totalTicks = trace.values.map(_._2)
+      totalTicks.dropRight(1).zip(totalTicks.tail).map { case (first, second) => second - first }
+    }
     val outputPlot = xyplot(
       (gradientStandard.values, List(line(color = Color.red)), InLegend("Periodic")),
       (gradientAdjustable.values, List(line(color = Color.green)), InLegend("Ad Hoc")),
@@ -71,16 +78,24 @@ object Main extends App {
       par(xlab = "time", ylab = "total output")
     )
 
-    val frequencyPlot = xyplot(
+    val totalTicksPlot = xyplot(
       (standardFrequency.values, List(line(color = Color.red)), InLegend("Periodic")),
       (adjustableFrequency.values, List(line(color = Color.green)), InLegend("Ad Hoc")),
       (rlTicks.values, List(line(color = Color.blue)), InLegend("Adjustable"))
+    )(
+      par(xlab = "time", ylab = "total ticks")
+    )
+
+    val frequencyPlot = xyplot(
+      (tickPerSeconds(standardFrequency), List(line(color = Color.red)), InLegend("Periodic")),
+      (tickPerSeconds(adjustableFrequency), List(line(color = Color.green)), InLegend("Ad Hoc")),
+      (tickPerSeconds(rlTicks), List(line(color = Color.blue)), InLegend("Adjustable"))
     )(
       par(xlab = "time", ylab = "total frequency")
     )
 
     store(
-      renderToFile(sequence(List(outputPlot, frequencyPlot), TableLayout(2))),
+      renderToFile(sequence(List(outputPlot, totalTicksPlot, frequencyPlot), TableLayout(2))),
       resultFolder / s"image-$label.png"
     )
   }
@@ -107,7 +122,7 @@ object Main extends App {
   val errorPlot = xyplot(
     (recordError, List(line(color = Color.red)), InLegend("Error"))
   )(
-    par(xlab = "time", ylab = "Average error")
+    par(xlab = "time", ylab = "Root Mean Squared Error")
   )
 
   val totalTickPlot = xyplot(
@@ -120,6 +135,7 @@ object Main extends App {
     renderToFile(errorPlot),
     resultFolder / s"error.png"
   )
+
   store(
     renderToFile(totalTickPlot),
     resultFolder / s"ticks.png"

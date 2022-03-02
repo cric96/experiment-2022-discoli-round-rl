@@ -29,13 +29,15 @@ class GradientSimulation(fireLogic: ID => RoundEvent, config: SimulationConfigur
     des.schedule(turnOnRLeft)
     des.schedule(roundCount)
     des.schedule(totalGradient)
-    des.schedule(turnOffLeft)
+    //des.schedule(turnOffLeft)
     des.schedule(turnOnRight)
     fireEvents.foreach(des.schedule)
     des.stopWhen(des.now.plusMillis(endWhen.toMillis))
     DesUtils.consume(des)
     (roundCount.trace, totalGradient.trace)
   }
+
+  override def updateAfter(): Unit = seeds.next()
 }
 
 object GradientSimulation {
