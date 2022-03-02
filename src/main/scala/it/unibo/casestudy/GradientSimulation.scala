@@ -4,7 +4,7 @@ import it.unibo.casestudy.DesIncarnation._
 import it.unibo.casestudy.GradientSimulation.SimulationConfiguration
 import it.unibo.casestudy.event.ChangeSourceAt
 import it.unibo.casestudy.utils.Variable.V
-import it.unibo.casestudy.utils.{DesUtils, ExperimentTrace}
+import it.unibo.casestudy.utils.{DesUtils, ExperimentConstant, ExperimentTrace}
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -24,12 +24,10 @@ class GradientSimulation(fireLogic: ID => RoundEvent, config: SimulationConfigur
     val totalGradient = Exports.NumericValueExport.`export`[Double](des.now, sampleFrequency)
 
     val turnOnRLeft = ChangeSourceAt(des.now, leftmost, value = true)
-    val turnOffLeft = ChangeSourceAt(des.now.plusMillis(switchAt.toMillis), leftmost, value = false)
     val turnOnRight = event.ChangeSourceAt(des.now.plusMillis(switchAt.toMillis), rightmost, value = true)
     des.schedule(turnOnRLeft)
     des.schedule(roundCount)
     des.schedule(totalGradient)
-    //des.schedule(turnOffLeft)
     des.schedule(turnOnRight)
     fireEvents.foreach(des.schedule)
     des.stopWhen(des.now.plusMillis(endWhen.toMillis))

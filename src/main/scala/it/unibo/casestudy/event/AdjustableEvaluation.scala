@@ -1,8 +1,10 @@
 package it.unibo.casestudy.event
 
 import it.unibo.casestudy.DesIncarnation.{EXECUTION, EXPORT, ID}
-import it.unibo.casestudy.{DesIncarnation, ExperimentConstant}
+import it.unibo.casestudy.DesIncarnation
 import DesIncarnation._
+import it.unibo.casestudy.utils.ExperimentConstant
+
 import java.time.Instant
 import scala.concurrent.duration.FiniteDuration
 

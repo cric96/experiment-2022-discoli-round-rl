@@ -4,16 +4,16 @@ import it.unibo.casestudy.GradientSimulation.SimulationConfiguration
 import it.unibo.casestudy.event.RLRoundEvaluation.Configuration
 import it.unibo.casestudy.event.{AdjustableEvaluation, RLRoundEvaluation, RoundAtEach}
 import it.unibo.casestudy.utils.{ExperimentTrace, Memoize, Variable}
-import org.nspl._
 import org.nspl.awtrenderer._
 import org.nspl.data.DataSource
+import org.nspl.{Color => PlotColor, _}
+import scribe.output._
 
 import java.io.File
 import java.time.Instant
 import scala.collection.immutable.Queue
 import scala.concurrent.duration._
 import scala.language.postfixOps
-
 object Main extends App {
   implicit def plotConverterUtil[T: Numeric](inQueue: Queue[(Instant, T)]): DataSource = inQueue.map {
     case (time, data) =>
@@ -64,34 +64,33 @@ object Main extends App {
       }
       .sum / gradientStandard.values.size
   )
-
   def plot(rlGradient: ExperimentTrace[Double], rlTicks: ExperimentTrace[Int], label: String = ""): Unit = {
     def tickPerSeconds(trace: ExperimentTrace[Int]): Seq[Double] = {
       val totalTicks = trace.values.map(_._2)
       totalTicks.dropRight(1).zip(totalTicks.tail).map { case (first, second) => second - first }
     }
     val outputPlot = xyplot(
-      (gradientStandard.values, List(line(color = Color.red)), InLegend("Periodic")),
-      (gradientAdjustable.values, List(line(color = Color.green)), InLegend("Ad Hoc")),
-      (rlGradient.values, List(line(color = Color.blue)), InLegend("Rl"))
+      (gradientStandard.values, List(line(color = PlotColor.red)), InLegend("Periodic")),
+      (gradientAdjustable.values, List(line(color = PlotColor.green)), InLegend("Ad Hoc")),
+      (rlGradient.values, List(line(color = PlotColor.blue)), InLegend("Rl"))
     )(
       par(xlab = "time", ylab = "total output")
     )
 
     val totalTicksPlot = xyplot(
-      (standardFrequency.values, List(line(color = Color.red)), InLegend("Periodic")),
-      (adjustableFrequency.values, List(line(color = Color.green)), InLegend("Ad Hoc")),
-      (rlTicks.values, List(line(color = Color.blue)), InLegend("Adjustable"))
+      (standardFrequency.values, List(line(color = PlotColor.red)), InLegend("Periodic")),
+      (adjustableFrequency.values, List(line(color = PlotColor.green)), InLegend("Ad Hoc")),
+      (rlTicks.values, List(line(color = PlotColor.blue)), InLegend("Rl"))
     )(
       par(xlab = "time", ylab = "total ticks")
     )
 
     val frequencyPlot = xyplot(
-      (tickPerSeconds(standardFrequency), List(line(color = Color.red)), InLegend("Periodic")),
-      (tickPerSeconds(adjustableFrequency), List(line(color = Color.green)), InLegend("Ad Hoc")),
-      (tickPerSeconds(rlTicks), List(line(color = Color.blue)), InLegend("Adjustable"))
+      (tickPerSeconds(standardFrequency), List(line(color = PlotColor.red)), InLegend("Periodic")),
+      (tickPerSeconds(adjustableFrequency), List(line(color = PlotColor.green)), InLegend("Ad Hoc")),
+      (tickPerSeconds(rlTicks), List(line(color = PlotColor.blue)), InLegend("Rl"))
     )(
-      par(xlab = "time", ylab = "total frequency")
+      par(xlab = "time", ylab = "ticks per second")
     )
 
     store(
@@ -111,22 +110,29 @@ object Main extends App {
       val rlTicks = data._1
       val error = totalError(gradientStandard, rlGradient)
       val totalTicks = rlTicks.values.map(_._2).sum / rlTicks.values.size.toDouble
-      println(s"simulation $ep")
-      println(s"total ticks $totalTicks")
+      scribe.info(
+        out(
+          blue(s"episode: "),
+          bold(s"$ep \n"),
+          green(s"total ticks: "),
+          bold(s"$totalTicks\n"),
+          red(s"episode error: "),
+          bold(s"$error\n")
+        )
+      )
       recordError = recordError :+ error
       recordTotalTicks = recordTotalTicks :+ totalTicks
-      println(s"episode error $error")
       plot(rlGradient, rlTicks, ep.toString)
     }.last
 
   val errorPlot = xyplot(
-    (recordError, List(line(color = Color.red)), InLegend("Error"))
+    (recordError, List(line(color = PlotColor.red)), InLegend("Error"))
   )(
     par(xlab = "time", ylab = "Root Mean Squared Error")
   )
 
   val totalTickPlot = xyplot(
-    (recordTotalTicks, List(line(color = Color.apply(255, 255, 0))), InLegend("Total ticks per second"))
+    (recordTotalTicks, List(line(color = PlotColor.apply(255, 255, 0))), InLegend("Total ticks per second"))
   )(
     par(xlab = "time", ylab = "Ticks per seconds")
   )

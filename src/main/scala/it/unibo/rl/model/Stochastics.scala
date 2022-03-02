@@ -2,7 +2,7 @@ package it.unibo.rl.model
 
 import scala.util.Random
 
-object Stochastics extends App {
+object Stochastics {
   /** (p1,a1),...,(pn,an) --> (p1,a1),(p1+p2,a2),..,(p1+..+pn,an)
     * @param l
     * @tparam A

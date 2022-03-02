@@ -1,6 +1,7 @@
 package it.unibo.casestudy
 
 import DesIncarnation._
+import it.unibo.casestudy.utils.ExperimentConstant
 import it.unibo.scafi.config.GridSettings
 object StandardWorld {
   def withRange(

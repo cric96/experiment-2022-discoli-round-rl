@@ -3,7 +3,8 @@ import it.unibo.casestudy.DesIncarnation._
 import it.unibo.casestudy.event.RLRoundEvaluation.{Normal, _}
 import it.unibo.casestudy.utils.RichDouble._
 import it.unibo.casestudy.utils.Variable.V
-import it.unibo.casestudy.{DesIncarnation, ExperimentConstant}
+import it.unibo.casestudy.DesIncarnation
+import it.unibo.casestudy.utils.ExperimentConstant
 import it.unibo.rl.model.{QRL, QRLImpl}
 
 import java.time.Instant
@@ -45,7 +46,7 @@ class RLRoundEvaluation(
       reinforcementLearningProcess.takeGreedyAction(q)
     }
     val nextState = State(action, (direction +: currentHistory).take(temporalWindow))
-    val rewardValue = reward(context, deltaTime)
+    val rewardValue = reward(deltaTime)
     // IMPROVE
     if (learn) { reinforcementLearningProcess.observeEnvAndUpdateQ(q, nextState, rewardValue) }
     // ACT
@@ -76,7 +77,7 @@ class RLRoundEvaluation(
     this
   }
 
-  private def reward(context: Context, deltaTime: FiniteDuration): Double = {
+  private def reward(deltaTime: FiniteDuration): Double = {
     if (state.history.headOption.getOrElse(Same) != Same) {
       -100 * (deltaTime / EnergySaving.next)
     } else {
