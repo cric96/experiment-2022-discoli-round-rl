@@ -17,9 +17,9 @@ object Variable {
   }
 
   def changeAfter[T](ticks: Int, initData: T, andThen: T): V[T] = new V[T] {
-    require(ticks >= 0)
     private var clock = ticks
-    override def value: T = if (ticks == 0) {
+    require(clock >= 0)
+    override def value: T = if (clock == 0) {
       andThen
     } else {
       initData
@@ -43,4 +43,15 @@ object Variable {
     }
   }
 
+  def evolveWith[T](initData: T, evolve: Int => T): V[T] = new V[T] {
+    private var i = 0
+    private var _data = initData
+    override def value: T = _data
+
+    override def next(): V[T] = {
+      i += 1
+      evolve(i)
+      this
+    }
+  }
 }

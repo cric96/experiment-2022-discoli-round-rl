@@ -37,11 +37,15 @@ class RLRoundEvaluation(
     // EVAL
     val currentValue = network.`export`(node).map(_.root[Double]()).getOrElse(Double.PositiveInfinity)
     val direction = outputTemporalDirection(currentValue)
-    val action = reinforcementLearningProcess.takeEpsGreedyAction(q) // todo pass learn condition
+    val action = if (learn) {
+      reinforcementLearningProcess.takeEpsGreedyAction(q)
+    } else {
+      reinforcementLearningProcess.takeGreedyAction(q)
+    }
     val nextState = State(action, (direction +: currentHistory).take(temporalWindow))
     val rewardValue = reward(context)
     // IMPROVE
-    reinforcementLearningProcess.observeEnvAndUpdateQ(q, nextState, rewardValue)
+    if (learn) { reinforcementLearningProcess.observeEnvAndUpdateQ(q, nextState, rewardValue) }
     // ACT
     val nextEvent =
       new RLRoundEvaluation(node, program, when.plusMillis(action.next.toMillis), temporalWindow, rlConfig) {
@@ -102,12 +106,17 @@ object RLRoundEvaluation {
 
   val QRLFamily: QRLImpl[State, WeakUpAction] = new QRLImpl[State, WeakUpAction] {}
 
-  class Configuration(val gamma: V[Double], val alpha: V[Double], val epsilon: V[Double], learn: V[Boolean] = true) {
+  class Configuration(
+      val gamma: V[Double],
+      val alpha: V[Double],
+      val epsilon: V[Double],
+      val learn: V[Boolean] = true
+  ) {
     def update(): Unit = gamma :: alpha :: epsilon :: learn :: Nil foreach (_.next())
   }
 
   object Configuration {
-    def apply(gamma: V[Double], alpha: V[Double], epsilon: V[Double]): Configuration =
-      new Configuration(gamma, alpha, epsilon)
+    def apply(gamma: V[Double], alpha: V[Double], epsilon: V[Double], learn: V[Boolean] = true): Configuration =
+      new Configuration(gamma, alpha, epsilon, learn)
   }
 }
