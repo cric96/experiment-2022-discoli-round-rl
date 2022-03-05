@@ -1,13 +1,13 @@
 package it.unibo.casestudy.launch
 import com.github.tototoshi.csv.CSVWriter
 import it.unibo.casestudy.DesIncarnation._
-import it.unibo.casestudy.GradientSimulation.SimulationConfiguration
+import it.unibo.casestudy.Simulation
+import it.unibo.casestudy.Simulation.TicksAndOutput
 import it.unibo.casestudy.event.RLRoundEvaluation.Configuration
 import it.unibo.casestudy.event.{AdjustableEvaluation, RLRoundEvaluation, RoundAtEach}
 import it.unibo.casestudy.launch.LaunchConstant._
 import it.unibo.casestudy.utils.ExperimentTrace.storeInCsv
 import it.unibo.casestudy.utils.{ExperimentTrace, Memoize, Variable}
-import it.unibo.casestudy.{GradientProgram, GradientSimulation}
 import scribe.Level
 import scribe.output._
 import upickle.default._
@@ -17,6 +17,8 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.duration._
 import scala.language.postfixOps
 object Main extends App {
+  def buildSimulation(fireLogic: ID => RoundEvent): Simulation[TicksAndOutput] =
+    SimulationFactory.simulationFromString("plain")(fireLogic)
   val configurations = if (args.length != 1) {
     SimulationDescriptions()
   } else {
@@ -27,21 +29,19 @@ object Main extends App {
   if (os.exists(resultFolder)) { os.remove.all(resultFolder) }
   os.makeDir.all(resultFolder)
   // Constants
-  val program = new GradientProgram()
+  val program = SimulationFactory.programFromString(configurations.program)
   val delta = 100 milliseconds
   val zero = Instant.ofEpochMilli(0)
   val max = 2 seconds
 
   val (standardTicks, standardOutput) =
-    new GradientSimulation(
-      fireLogic = id => RoundAtEach(id, new GradientProgram, zero, delta),
-      config = SimulationConfiguration()
+    buildSimulation(
+      fireLogic = id => RoundAtEach(id, program, zero, delta)
     ).perform()
 
   val (adHocTicks, adHocOutput) =
-    new GradientSimulation(
-      fireLogic = id => AdjustableEvaluation(id, new GradientProgram, zero, delta, max, delta),
-      config = SimulationConfiguration()
+    buildSimulation(
+      fireLogic = id => AdjustableEvaluation(id, program, zero, delta, max, delta)
     ).perform()
 
   if (configurations.total > 1) {
@@ -86,9 +86,8 @@ object Main extends App {
     }.andThen(_.updateVariables().reset()) // used to clear the variables at the begging of each learning process
     var recordError = Seq.empty[Double]
     var recordTotalTicks = Seq.empty[Double]
-    new GradientSimulation(
-      fireLogic = rlRoundFunction,
-      config = SimulationConfiguration(seeds = Variable.evolveWith(Seeds(0, 0, 0), i => Seeds(i, i, i)))
+    buildSimulation(
+      fireLogic = rlRoundFunction
     ).repeat(trainingEpisodes + greedy) { (data, ep) =>
       val rlGradient = data._2
       val rlTicks = data._1

@@ -1,8 +1,10 @@
 package it.unibo.casestudy.launch
 import upickle.default._
 case class SimulationDescriptions(
-    training: Int = 500,
-    greedy: Int = 5,
+    training: Int = 100,
+    greedy: Int = 1,
+    simulation: String = "plain",
+    program: String = "gradient",
     gamma: Seq[Double] = Seq(0.99),
     alphaBeta: Seq[(Double, Double)] = Seq((0.1, 0.1)),
     epsilon: Seq[Double] = Seq(0.2),

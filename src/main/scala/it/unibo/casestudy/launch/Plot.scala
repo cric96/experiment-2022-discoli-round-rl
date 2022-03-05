@@ -71,12 +71,12 @@ object Plot extends App {
       label: String = ""
   ): Unit = {
     def convert(data: Seq[ExperimentData], select: (ExperimentData) => Double) = data.map { case t @ (time, _, _) =>
-      (time / toSecondConversion, select(t))
+      (time, select(t))
     }
 
     def tickPerSeconds(trace: Seq[ExperimentData]): Seq[(Double, Double)] = {
       trace.dropRight(1).zip(trace.tail).map { case (first, second) =>
-        (first._1 / toSecondConversion, second._2 - first._2)
+        (first._1, second._2 - first._2)
       }
     }
 
