@@ -51,7 +51,13 @@ class RLRoundEvaluation(
     if (learn) { reinforcementLearningProcess.observeEnvAndUpdateQ(q, nextState, rewardValue) }
     // ACT
     val nextEvent =
-      new RLRoundEvaluation(node, program, when.plusMillis(action.next.toMillis), temporalWindow, rlConfig) {
+      new RLRoundEvaluation(
+        node,
+        program,
+        when.plusMillis(action.next.toMillis).plusNanos(random.nextInt(nextFireNoise)),
+        temporalWindow,
+        rlConfig
+      ) {
         this.oldValue = currentValue
         this.state = nextState
         this.q = self.q
@@ -79,7 +85,7 @@ class RLRoundEvaluation(
 
   private def reward(deltaTime: FiniteDuration): Double = {
     if (state.history.headOption.getOrElse(Same) != Same) {
-      -100 * (deltaTime / EnergySaving.next)
+      -stableWeight * (deltaTime / EnergySaving.next)
     } else {
       -(1 - (deltaTime / EnergySaving.next))
     }
@@ -117,6 +123,8 @@ object RLRoundEvaluation {
       val learn: V[Boolean] = true
   ) {
     def update(): Unit = gamma :: alpha :: epsilon :: learn :: beta :: Nil foreach (_.next())
+
+    override def toString = s"Configuration($gamma, $alpha, $beta, $epsilon, $learn)"
   }
 
   object Configuration {
@@ -129,4 +137,7 @@ object RLRoundEvaluation {
     ): Configuration =
       new Configuration(gamma, alpha, beta, epsilon, learn)
   }
+
+  val stableWeight = 100
+  val nextFireNoise = 1000
 }

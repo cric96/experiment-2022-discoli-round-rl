@@ -3,6 +3,8 @@ package it.unibo.casestudy.utils
 trait Variable[T] {
   def value: T
   def next(): Variable[T] // side effect
+
+  override def toString: String = s"V($value)"
 }
 
 object Variable {
