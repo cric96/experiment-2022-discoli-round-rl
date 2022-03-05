@@ -12,5 +12,6 @@ libraryDependencies += "com.lihaoyi" %% "os-lib" % "0.8.0"
 libraryDependencies += "com.outr" %% "scribe" % "3.8.0"
 libraryDependencies += "com.github.tototoshi" %% "scala-csv" % "1.3.10"
 libraryDependencies += "com.lihaoyi" %% "upickle" % "1.4.3"
+libraryDependencies += "org.scala-lang.modules" %% "scala-swing" % "3.0.0"
 
 addCommandAlias("startSimulation", "runMain it.unibo.casestudy.launch.Main config.json")
