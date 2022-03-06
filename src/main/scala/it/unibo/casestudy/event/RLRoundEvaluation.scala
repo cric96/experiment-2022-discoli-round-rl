@@ -17,6 +17,7 @@ class RLRoundEvaluation(
     val program: EXECUTION,
     val when: Instant,
     val temporalWindow: Int = 5,
+    val weightForConvergence: Double = 0.99,
     rlConfig: Configuration
 ) extends RoundEvent {
   self =>
@@ -56,6 +57,7 @@ class RLRoundEvaluation(
         program,
         when.plusMillis(action.next.toMillis).plusNanos(random.nextInt(nextFireNoise)),
         temporalWindow,
+        weightForConvergence,
         rlConfig
       ) {
         this.oldValue = currentValue
@@ -84,11 +86,12 @@ class RLRoundEvaluation(
   }
 
   private def reward(deltaTime: FiniteDuration): Double = {
-    if (state.history.headOption.getOrElse(Same) != Same) {
-      -stableWeight * (deltaTime / EnergySaving.next)
+    val result = if (state.history.exists(_ != Same)) { // before: state.history.headOption.getOrElse(Same) != Same
+      -weightForConvergence * (deltaTime / EnergySaving.next)
     } else {
-      -(1 - (deltaTime / EnergySaving.next))
+      -(1 - (deltaTime / EnergySaving.next)) * (1 - weightForConvergence)
     }
+    result
   }
 
   private def outputTemporalDirection(current: Double): OutputDirection = if (current ~= oldValue) {
@@ -137,7 +140,5 @@ object RLRoundEvaluation {
     ): Configuration =
       new Configuration(gamma, alpha, beta, epsilon, learn)
   }
-
-  val stableWeight = 100
-  val nextFireNoise = 1000
+  val nextFireNoise = 1000 // increase randomness in next device fire
 }

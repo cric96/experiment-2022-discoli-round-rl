@@ -58,15 +58,23 @@ object Main extends App {
     (alpha, beta) <- configurations.alphaBeta
     initialEps <- configurations.epsilon
     window <- configurations.window
+    weight <- configurations.stableWeight
   } {
     val configurationName =
-      s"$gamma-$alpha-$beta-$initialEps-$window"
+      s"$gamma-$alpha-$beta-$initialEps-$window-$weight"
     scribe.warn(out(bgBrightCyan(s"Simulation with: " + configurationName)))
     def epsilon() = Variable.linearDecay(initialEps, initialEps / configurations.training)
     def learn() = Variable.changeAfter(configurations.training, true, false)
     def configuration = Configuration(gamma, alpha, beta, epsilon(), learn())
     val clock = System.currentTimeMillis()
-    runCompleteRlSimulation(configuration, window, configurations.training, configurations.greedy, configurationName)
+    runCompleteRlSimulation(
+      configuration,
+      window,
+      configurations.training,
+      configurations.greedy,
+      weight,
+      configurationName
+    )
     scribe.warn(
       bgYellow(s"Total Time: ${FiniteDuration(System.currentTimeMillis() - clock, TimeUnit.MILLISECONDS).toSeconds}")
     )
@@ -78,11 +86,12 @@ object Main extends App {
       temporalWindow: Int,
       trainingEpisodes: Int,
       greedy: Int,
+      stableWeight: Double,
       configurationName: String
   ): Unit = {
     os.makeDir(resultFolder / configurationName)
     val rlRoundFunction = Memoize[ID, RLRoundEvaluation] { id =>
-      new RLRoundEvaluation(id, program, zero, temporalWindow, config)
+      new RLRoundEvaluation(id, program, zero, temporalWindow, stableWeight, config)
     }.andThen(_.updateVariables().reset()) // used to clear the variables at the begging of each learning process
     var recordError = Seq.empty[Double]
     var recordTotalTicks = Seq.empty[Double]
@@ -131,5 +140,5 @@ object Main extends App {
       .sum / standardOutput.values.size
   )
 
-  Plot.main(Array())
+  Plot.main(Array("sample"))
 }

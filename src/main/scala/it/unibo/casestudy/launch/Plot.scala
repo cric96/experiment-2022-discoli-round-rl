@@ -4,10 +4,21 @@ import com.github.tototoshi.csv.CSVReader
 import it.unibo.casestudy.launch.LaunchConstant._
 import org.nspl._
 import org.nspl.awtrenderer._
+import scribe.Level
 
 import java.io.File
+import scala.collection.parallel.CollectionConverters.ImmutableIterableIsParallelizable
 
 object Plot extends App {
+  val toSample = 50 // one plot each 100 experiments
+  val regex = raw"(.*)rl-(\d+)(.*)".r
+  def sample(name: String): Boolean = if (args.length == 1 && args(0) == "sample") {
+    name match {
+      case regex(_, number, _) => number.toInt % toSample == 0
+    }
+  } else {
+    true
+  }
   // Prepare
   type ExperimentData = (Double, Double, Double)
   val toSecondConversion = 1000.0
@@ -20,11 +31,24 @@ object Plot extends App {
   // Load data
   val (_, fixed) = load(allFiles, fixedName, convertFromString).head
   val (_, adHoc) = load(allFiles, adhocName, convertFromString).head
+
+  if (os.list(resultFolder).size > 1) {
+    scribe.Logger.root
+      .clearHandlers()
+      .clearModifiers()
+      .withHandler(minimumLevel = Some(Level.Warn))
+      .replace()
+  }
   // One folder for each configuration
-  allExperiment(resultFolder).foreach { rlFolder =>
-    val allFiles = os.list(rlFolder).filter(os.isFile).filter(_.toString.contains(".csv"))
+  allExperiment(resultFolder).par.foreach { rlFolder =>
+    val experimentName = rlFolder.toIO.getName
+    scribe.warn(s"Handle: $experimentName")
+    val allFiles = os
+      .list(rlFolder)
+      .filter(os.isFile)
+      .filter(_.toString.contains(".csv"))
     // One file foreach episode
-    val rl = load(allFiles, rlName, convertFromString)
+    val rl = load(allFiles, rlName, convertFromString, sample)
     val (_, error) = load(allFiles, errorName, convertSingle).head
     val (_, totalTicks) = load(allFiles, totalTicksName, convertSingle).head
     // Plots preparation
@@ -38,14 +62,15 @@ object Plot extends App {
     )(
       par(xlab = "time", ylab = "Ticks per seconds")
     )
-    os.makeDir(imageFolder / rlFolder.baseName)
+    os.makeDir(imageFolder / experimentName)
     // Plot storage
     rl.foreach { case (name, data) =>
       scribe.info(s"process: $name")
-      plotRl(imageFolder / rlFolder.baseName, data, fixed, adHoc, name)
+      plotRl(imageFolder / experimentName, data, fixed, adHoc, name)
     }
-    store(renderToFile(errorPlot), imageFolder / rlFolder.baseName / s"error.png")
-    store(renderToFile(totalTickPlot), imageFolder / rlFolder.baseName / s"ticks.png")
+    store(renderToFile(errorPlot), imageFolder / experimentName / s"error.png")
+    store(renderToFile(totalTickPlot), imageFolder / experimentName / s"ticks.png")
+    scribe.warn(s"End: $experimentName")
   }
 
   // Utility functions
@@ -55,9 +80,15 @@ object Plot extends App {
   def convertSingle(data: List[String]): Double = data.head.toDouble
 
   def allExperiment(resultFolder: os.Path): Seq[os.Path] = os.list(resultFolder).filter(os.isDir)
-  def load[E](allFiles: Seq[os.Path], target: String, conversion: List[String] => E): (Seq[(String, Seq[E])]) =
+  def load[E](
+      allFiles: Seq[os.Path],
+      target: String,
+      conversion: List[String] => E,
+      filter: String => Boolean = _ => true
+  ): (Seq[(String, Seq[E])]) =
     allFiles
       .filter(_.baseName.contains(target))
+      .filter(f => filter(f.baseName))
       .map(f => f.baseName -> CSVReader.open(f.toIO))
       .map { case (name, reader) => (name, reader.all().tail, reader) }
       .tapEach(_._3.close())
