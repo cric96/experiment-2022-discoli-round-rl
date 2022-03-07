@@ -17,14 +17,15 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.duration._
 import scala.language.postfixOps
 object Main extends App {
-  def buildSimulation(fireLogic: ID => RoundEvent): Simulation[TicksAndOutput] =
-    SimulationFactory.simulationFromString("plain")(fireLogic)
   val configurations = if (args.length != 1) {
     SimulationDescriptions()
   } else {
     val file = os.pwd / args(0)
     read[SimulationDescriptions](os.read.lines(file).mkString.stripMargin)
   }
+
+  def buildSimulation(fireLogic: ID => RoundEvent): Simulation[TicksAndOutput] =
+    SimulationFactory.simulationFromString(configurations.simulation)(fireLogic)
   val resultFolder = os.pwd / resFolder
   if (os.exists(resultFolder)) { os.remove.all(resultFolder) }
   os.makeDir.all(resultFolder)
