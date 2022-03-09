@@ -163,14 +163,20 @@ object Plot extends App {
     val percentageOfRoundAndOutput = xyplot(
       (percentage(fixed, adhoc, _._3[Double]), List(greenLine), InLegend("Ad Hoc Error Percentage")),
       (percentage(fixed, rl, _._3[Double]), List(blueLine), InLegend("Rl Error Percentage")),
-      (percentage(fixed, adhoc, _._2[Double]), List(darkGreenLine), InLegend("Ad Hoc Frequency Percentage")),
-      (percentage(fixed, rl, _._2[Double]), List(darkBlueLine), InLegend("Rl Frequency Percentage"))
+      (percentage(fixed, adhoc, _._2[Double]), List(darkGreenLine), InLegend("Ad Hoc Energy Saving Percentage")),
+      (percentage(fixed, rl, _._2[Double]), List(darkBlueLine), InLegend("Rl Energy Saving Percentage"))
     )(
       par(xlab = "time", ylab = "Percentage")
     )
     val elements = sequence(
-      List(outputPlot, totalTicksPlot, frequencyPlot, errorPerSecond, percentageOfRoundAndOutput),
-      TableLayout(2)
+      List(
+        // outputPlot,
+        totalTicksPlot,
+        frequencyPlot,
+        // errorPerSecond,
+        percentageOfRoundAndOutput
+      ),
+      TableLayout(3)
     )
     store(
       svgToFile(tempFile, elements, width),
