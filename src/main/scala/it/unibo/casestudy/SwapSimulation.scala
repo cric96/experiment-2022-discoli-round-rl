@@ -14,7 +14,7 @@ import scala.language.postfixOps
 class SwapSimulation(fireLogic: ID => RoundEvent, config: SimulationConfiguration) extends Simulation[TicksAndOutput] {
   import config._
   import config.worldSetting._
-  override def perform(): (ExperimentTrace[Int], ExperimentTrace[Double]) = {
+  override def perform(): TicksAndOutput = {
     val world = StandardWorld.withRange(size, size, range, Set.empty, seeds)
     val leftmost = world.ids.min
     val rightmost = world.ids.max

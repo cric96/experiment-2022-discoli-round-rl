@@ -15,7 +15,7 @@ class MultipleSwapSimulation(fireLogic: ID => RoundEvent, config: MultipleSwapSi
     extends Simulation[TicksAndOutput] {
   import config._
   import config.worldSetting._
-  override def perform(): (ExperimentTrace[Int], ExperimentTrace[Double]) = {
+  override def perform(): TicksAndOutput = {
     val world = StandardWorld.withRange(size, size, range, Set.empty, seeds)
     world.clearExports()
     val leftmost = world.ids.min
@@ -27,6 +27,7 @@ class MultipleSwapSimulation(fireLogic: ID => RoundEvent, config: MultipleSwapSi
     val fireEvents = des.network.ids.map(fireLogic(_))
     val roundCount =
       Exports.NumericValueExport.fromSensor[Int](des.now, sampleFrequency, ExperimentConstant.RoundCount)
+
     val totalGradient = Exports.NumericValueExport.`export`[Double](des.now, sampleFrequency)
     val turnOnRLeft = ChangeSourceAt(des.now, center, value = true)
     val toTurn = leftmost :: rightmost :: otherCorner :: lastCorner :: Nil

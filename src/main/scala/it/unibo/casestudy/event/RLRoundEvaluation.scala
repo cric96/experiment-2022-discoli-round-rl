@@ -86,7 +86,7 @@ class RLRoundEvaluation(
   }
 
   private def reward(deltaTime: FiniteDuration): Double = {
-    val result = if (state.history.exists(_ != Same)) { // before: state.history.headOption.getOrElse(Same) != Same
+    val result = if (state.history.headOption.getOrElse(Same) != Same) { // before: state.history.exists(_ != Same)
       -weightForConvergence * (deltaTime / EnergySaving.next)
     } else {
       -(1 - (deltaTime / EnergySaving.next)) * (1 - weightForConvergence)

@@ -9,6 +9,11 @@ class ExperimentTrace[T](val name: String) {
   var values: Queue[(Instant, T)] = Queue.empty
   def record(time: Instant, value: T): Unit =
     values = values.appended((time, value))
+  def convert[Z](fun: (Instant, T) => Z): ExperimentTrace[Z] = {
+    val newTrace = new ExperimentTrace[Z](name)
+    newTrace.values = values.map { case (i, data) => i -> fun(i, data) }
+    newTrace
+  }
 }
 
 object ExperimentTrace {

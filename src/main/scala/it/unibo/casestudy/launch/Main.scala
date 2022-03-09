@@ -23,7 +23,6 @@ object Main extends App {
     val file = os.pwd / args(0)
     read[SimulationDescriptions](os.read.lines(file).mkString.stripMargin)
   }
-
   def buildSimulation(fireLogic: ID => RoundEvent): Simulation[TicksAndOutput] =
     SimulationFactory.simulationFromString(configurations.simulation)(fireLogic)
   val resultFolder = os.pwd / resFolder
@@ -101,8 +100,8 @@ object Main extends App {
     ).repeat(trainingEpisodes + greedy) { (data, ep) =>
       val rlGradient = data._2
       val rlTicks = data._1
-      val error = totalError(standardOutput, rlGradient)
-      val totalTicks = rlTicks.values.map(_._2).sum / rlTicks.values.size.toDouble
+      val error = pointWiseError(standardOutput, rlGradient).values.map(_._2).sum
+      val totalTicks = totalTicksPerTrack(rlTicks).values.map(_._2).sum / rlTicks.values.size.toDouble
       scribe.info(
         out(
           blue(s"episode: "),
@@ -115,14 +114,22 @@ object Main extends App {
       )
       recordError = recordError :+ error
       recordTotalTicks = recordTotalTicks :+ totalTicks
-      storeInCsv(resultFolder / configurationName / s"$rlName-$ep.csv", rlTicks, rlGradient)
+      storeInCsv(
+        resultFolder / configurationName / s"$rlName-$ep.csv",
+        totalTicksPerTrack(rlTicks),
+        totalOutputForEachStep(rlGradient)
+      )
     }.last // consume the stream
     storeSequence(resultFolder / configurationName / s"$errorName.csv", recordError, errorName)
     storeSequence(resultFolder / configurationName / s"$totalTicksName.csv", recordTotalTicks, totalTicksName)
   }
   // Store standard performance
-  storeInCsv(resultFolder / s"$fixedName.csv", standardTicks, standardOutput)
-  storeInCsv(resultFolder / s"$adhocName.csv", adHocTicks, adHocOutput)
+  storeInCsv(
+    resultFolder / s"$fixedName.csv",
+    totalTicksPerTrack(standardTicks),
+    totalOutputForEachStep(standardOutput)
+  )
+  storeInCsv(resultFolder / s"$adhocName.csv", totalTicksPerTrack(adHocTicks), totalOutputForEachStep(adHocOutput))
 
   def storeSequence(where: os.Path, data: Seq[Double], name: String): Unit = {
     val writer = CSVWriter.open(where.toIO)
@@ -131,15 +138,31 @@ object Main extends App {
     writer.close()
   }
 
-  def totalError(reference: ExperimentTrace[Double], rl: ExperimentTrace[Double]): Double = Math.sqrt(
-    reference.values
-      .map(_._2)
-      .zip(rl.values.map(_._2))
-      .map { case (correct, rl) =>
-        Math.pow(correct - rl, 2)
+  def pointWiseError(
+      reference: ExperimentTrace[Map[ID, Double]],
+      other: ExperimentTrace[Map[ID, Double]]
+  ): ExperimentTrace[Double] = {
+    val errorPerTime = reference.values
+      .zip(other.values)
+      .map { case ((i, reference), (_, rl)) =>
+        val onlyFinite = reference.filter { case (id, v) => v.isFinite && rl(id).isFinite }
+        val sumSquaredError =
+          Math.sqrt(onlyFinite.map { case (id, _) => id -> math.pow(reference(id) - rl(id), 2) }.values.sum)
+        i -> sumSquaredError / onlyFinite.size
       }
-      .sum / standardOutput.values.size
-  )
+    val errorPerTimeTrace = new ExperimentTrace[Double](other.name)
+    errorPerTimeTrace.values = errorPerTime
+    errorPerTimeTrace
+  }
+
+  def totalOutputForEachStep(trace: ExperimentTrace[Map[ID, Double]]): ExperimentTrace[Double] = trace.convert {
+    case (_, data) =>
+      data.values.filter(_.isFinite).sum
+  }
+
+  def totalTicksPerTrack(ticks: ExperimentTrace[Map[ID, Int]]): ExperimentTrace[Int] = ticks.convert { case (i, d) =>
+    d.values.sum
+  }
 
   Plot.main(Array("sample"))
 }

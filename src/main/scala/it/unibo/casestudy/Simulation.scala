@@ -1,5 +1,6 @@
 package it.unibo.casestudy
 
+import it.unibo.casestudy.DesIncarnation.ID
 import it.unibo.casestudy.utils.ExperimentTrace
 
 trait Simulation[E] {
@@ -17,5 +18,5 @@ trait Simulation[E] {
 
 object Simulation {
   case class WorldSetting(size: Int, range: Double)
-  type TicksAndOutput = (ExperimentTrace[Int], ExperimentTrace[Double])
+  type TicksAndOutput = (ExperimentTrace[Map[ID, Int]], ExperimentTrace[Map[ID, Double]])
 }
