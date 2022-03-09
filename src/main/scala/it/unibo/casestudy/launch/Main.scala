@@ -101,23 +101,33 @@ object Main extends App {
       val rlGradient = data._2
       val rlTicks = data._1
       val error = pointWiseError(standardOutput, rlGradient).values.map(_._2).sum
-      val totalTicks = totalTicksPerTrack(rlTicks).values.map(_._2).sum / rlTicks.values.size.toDouble
+      val totalTicks = totalTicksPerTrack(rlTicks).values
+      val diff = totalTicks
+        .dropRight(1)
+        .zip(totalTicks.tail)
+        .map { case (first, second) =>
+          (second._2 - first._2)
+        }
+        .sum / totalTicks.size
+
+      //val totalTicks = totalTicksPerTrack(rlTicks).values.map(_._2).sum / rlTicks.values.size.toDouble
       scribe.info(
         out(
           blue(s"episode: "),
           bold(s"$ep \n"),
-          green(s"total ticks: "),
-          bold(s"$totalTicks\n"),
+          green(s"average ticks per seconds: "),
+          bold(s"$diff\n"),
           red(s"episode error: "),
           bold(s"$error\n")
         )
       )
       recordError = recordError :+ error
-      recordTotalTicks = recordTotalTicks :+ totalTicks
+      recordTotalTicks = recordTotalTicks :+ diff
       storeInCsv(
         resultFolder / configurationName / s"$rlName-$ep.csv",
         totalTicksPerTrack(rlTicks),
-        totalOutputForEachStep(rlGradient)
+        totalOutputForEachStep(rlGradient),
+        pointWiseError(standardOutput, rlGradient)
       )
     }.last // consume the stream
     storeSequence(resultFolder / configurationName / s"$errorName.csv", recordError, errorName)
@@ -129,7 +139,12 @@ object Main extends App {
     totalTicksPerTrack(standardTicks),
     totalOutputForEachStep(standardOutput)
   )
-  storeInCsv(resultFolder / s"$adhocName.csv", totalTicksPerTrack(adHocTicks), totalOutputForEachStep(adHocOutput))
+  storeInCsv(
+    resultFolder / s"$adhocName.csv",
+    totalTicksPerTrack(adHocTicks),
+    totalOutputForEachStep(adHocOutput),
+    pointWiseError(standardOutput, adHocOutput)
+  )
 
   def storeSequence(where: os.Path, data: Seq[Double], name: String): Unit = {
     val writer = CSVWriter.open(where.toIO)
@@ -142,15 +157,22 @@ object Main extends App {
       reference: ExperimentTrace[Map[ID, Double]],
       other: ExperimentTrace[Map[ID, Double]]
   ): ExperimentTrace[Double] = {
+    def zeroIfInfinity(double: Double): Double =
+      if (double.isInfinity) { 0.0 }
+      else { double }
     val errorPerTime = reference.values
       .zip(other.values)
-      .map { case ((i, reference), (_, rl)) =>
-        val onlyFinite = reference.filter { case (id, v) => v.isFinite && rl(id).isFinite }
+      .map { case ((i, reference), (_, other)) =>
+        val onlyFinite = reference
+          .filter { case (_, v) => v.isFinite }
         val sumSquaredError =
-          Math.sqrt(onlyFinite.map { case (id, _) => id -> math.pow(reference(id) - rl(id), 2) }.values.sum)
-        i -> sumSquaredError / onlyFinite.size
+          onlyFinite
+            .map { case (id, _) => id -> math.pow(reference(id) - zeroIfInfinity(other(id)), 2) }
+            .values
+            .sum
+        i -> Math.sqrt(sumSquaredError / onlyFinite.size)
       }
-    val errorPerTimeTrace = new ExperimentTrace[Double](other.name)
+    val errorPerTimeTrace = new ExperimentTrace[Double](other.name + "point-wise")
     errorPerTimeTrace.values = errorPerTime
     errorPerTimeTrace
   }

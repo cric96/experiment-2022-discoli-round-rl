@@ -18,7 +18,8 @@ class RLRoundEvaluation(
     val when: Instant,
     val temporalWindow: Int = 5,
     val weightForConvergence: Double = 0.99,
-    rlConfig: Configuration
+    rlConfig: Configuration,
+    val seed: Int = 0
 ) extends RoundEvent {
   self =>
   import rlConfig._
@@ -27,13 +28,12 @@ class RLRoundEvaluation(
   protected var state: State = State(FullSpeed, Seq.empty[OutputDirection])
   protected var reinforcementLearningProcess: QRLFamily.RealtimeQLearning =
     QRLFamily.RealtimeQLearning(gamma, q, QRL.StaticParameters(epsilon, alpha, beta))
-
+  implicit val random = new Random(seed)
   override def act(network: DesIncarnation.NetworkSimulator): Option[DesIncarnation.Event] = {
     // ARRANGE
     val context = network.context(node)
     // PAY ATTENTION! THE DELTA TIME MUST BE PERCEIVED BEFORE THE ROUND EXECUTION!
     val deltaTime = context.sense[FiniteDuration]("LSNS_DELTA_TIME").get
-    implicit val random: Random = context.sense[Random]("LSNS_RANDOM").get
     val currentHistory = state.history
     reinforcementLearningProcess.setState(state)
     // ROUND EVALUATION
@@ -86,7 +86,7 @@ class RLRoundEvaluation(
   }
 
   private def reward(deltaTime: FiniteDuration): Double = {
-    val result = if (state.history.headOption.getOrElse(Same) != Same) { // before: state.history.exists(_ != Same)
+    val result = if (state.history.exists(_ != Same)) { // before: state.history.exists(_ != Same)
       -weightForConvergence * (deltaTime / EnergySaving.next)
     } else {
       -(1 - (deltaTime / EnergySaving.next)) * (1 - weightForConvergence)
