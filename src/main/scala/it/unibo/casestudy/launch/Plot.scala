@@ -51,7 +51,7 @@ object Plot extends App {
       .replace()
   }
   // One folder for each configuration
-  allExperiment(resultFolder).par.foreach { rlFolder =>
+  allExperiment(resultFolder).foreach { rlFolder =>
     val experimentName = rlFolder.toIO.getName
     scribe.warn(s"Handle: $experimentName")
     val allFiles = os
