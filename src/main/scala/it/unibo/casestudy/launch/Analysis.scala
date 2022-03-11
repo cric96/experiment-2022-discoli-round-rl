@@ -7,34 +7,34 @@ import org.nspl.awtrenderer._
 import scribe.Level
 import it.unibo.casestudy.utils.UnsafeProduct._
 import java.io.File
-import scala.collection.parallel.CollectionConverters.ImmutableIterableIsParallelizable
 
-object Plot extends App {
-  def tempFile = java.io.File.createTempFile("nspl", ".svg")
-  val width = 400
-  // line constans
+object Analysis extends App {
+  // Prepare
+  type PlainData = (Double, Double, Double)
+  // Rl and Adhoc
+  type GeneratedData = (Double, Double, Double, Double)
+  // Constants
+  private val width = 400
+  // line constants
   private val redLine = line(color = Color.red)
   private val greenLine = line(color = Color.green)
   private val blueLine = line(color = Color.blue)
   private val darkBlueLine = line(color = Color(0, 0, 139))
   private val darkGreenLine = line(color = Color(0, 139, 0))
+  // extract all error and ticks at the end
+  private var experimentLinesResult: Seq[String] = Seq("name,ticks,error")
+  private val toSample = 50 // one plot each 100 experiments
+  private val regex = raw"(.*)rl-(\d+)(.*)".r
 
-  val toSample = 50 // one plot each 100 experiments
-  val regex = raw"(.*)rl-(\d+)(.*)".r
   def sample(name: String): Boolean = if (args.length == 1 && args(0) == "sample") {
-    name match {
-      case regex(_, number, _) => number.toInt % toSample == 0
-    }
+    name match { case regex(_, number, _) => number.toInt % toSample == 0 }
   } else {
     true
   }
-  // Prepare
-  type PlainData = (Double, Double, Double)
-  // Rl and Adhoc
-  type GeneratedData = (Double, Double, Double, Double)
-  val toSecondConversion = 1000.0
-  val resultFolder = os.pwd / LaunchConstant.resFolder
-  val imageFolder = os.pwd / LaunchConstant.imageFolder
+  private val toSecondConversion = 1000.0
+  private val resultFolder = os.pwd / LaunchConstant.resFolder
+  private val imageFolder = os.pwd / LaunchConstant.imageFolder
+
   if (os.exists(imageFolder)) { os.remove.all(imageFolder) }
   os.makeDir.all(imageFolder)
   val allFiles = os.list(resultFolder).filter(os.isFile).filter(_.toString.contains(".csv"))
@@ -66,12 +66,12 @@ object Plot extends App {
     val errorPlot = xyplot(
       (error, List(redLine), InLegend("Error"))
     )(
-      par(xlab = "time", ylab = "Root Mean Squared Error")
+      par(xlab = "episode", ylab = "Root Mean Squared Error")
     )
     val totalTickPlot = xyplot(
       (totalTicks, List(line(color = Color.apply(255, 255, 0))), InLegend("Average ticks per second"))
     )(
-      par(xlab = "time", ylab = "Ticks per seconds")
+      par(xlab = "episode", ylab = "Ticks per seconds")
     )
     os.makeDir(imageFolder / experimentName)
     // Plot storage
@@ -79,11 +79,18 @@ object Plot extends App {
       scribe.info(s"process: $name")
       plotRl(imageFolder / experimentName, data, fixed, adHoc, name)
     }
+    store(
+      svgToFile(tempFile, sequence(List(errorPlot, totalTickPlot), TableLayout(2)), width),
+      imageFolder / experimentName / s"error-and-ticks.svg"
+    )
     store(svgToFile(tempFile, errorPlot, width), imageFolder / experimentName / s"error.svg")
     store(svgToFile(tempFile, totalTickPlot, width), imageFolder / experimentName / s"ticks.svg")
+
+    experimentLinesResult = experimentLinesResult :+ s"$experimentName,${totalTicks.last},${error.last}"
     scribe.warn(s"End: $experimentName")
   }
 
+  os.write.over(imageFolder / "analysis.csv", experimentLinesResult.mkString("\n"))
   // Utility functions
   def convertPlain(data: List[String]): PlainData =
     (data.head.toLong / toSecondConversion, data(1).toDouble, data(2).toDouble)
@@ -184,6 +191,9 @@ object Plot extends App {
     )
   }
 
-  def store(file: File, path: os.Path): Unit =
+  private def store(file: File, path: os.Path): Unit =
     os.copy.over(os.Path(file.toPath), path)
+
+  private def tempFile = java.io.File.createTempFile("nspl", ".svg")
+
 }

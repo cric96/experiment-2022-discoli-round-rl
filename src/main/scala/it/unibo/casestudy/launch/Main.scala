@@ -17,6 +17,7 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.duration._
 import scala.language.postfixOps
 object Main extends App {
+
   val configurations = if (args.length != 1) {
     SimulationDescriptions()
   } else {
@@ -186,5 +187,5 @@ object Main extends App {
     d.values.sum
   }
 
-  Plot.main(Array("sample"))
+  Analysis.main(Array("sample"))
 }
