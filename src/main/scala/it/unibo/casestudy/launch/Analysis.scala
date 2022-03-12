@@ -21,6 +21,7 @@ object Analysis extends App {
   private val blueLine = line(color = Color.blue)
   private val darkBlueLine = line(color = Color(0, 0, 139))
   private val darkGreenLine = line(color = Color(0, 139, 0))
+  private val bluishGreen = line(color = Color(0, 158, 115))
   // extract all error and ticks at the end
   private var experimentLinesResult: Seq[String] = Seq("name,ticks,error")
   private val toSample = 50 // one plot each 100 experiments
@@ -69,7 +70,7 @@ object Analysis extends App {
       par(xlab = "episode", ylab = "Root Mean Squared Error")
     )
     val totalTickPlot = xyplot(
-      (totalTicks, List(line(color = Color.apply(255, 255, 0))), InLegend("Average ticks per second"))
+      (totalTicks, List(bluishGreen), InLegend("Average ticks per second"))
     )(
       par(xlab = "episode", ylab = "Ticks per seconds")
     )
