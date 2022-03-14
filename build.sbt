@@ -15,4 +15,6 @@ libraryDependencies += "com.lihaoyi" %% "upickle" % "1.4.3"
 libraryDependencies += "org.scala-lang.modules" %% "scala-swing" % "3.0.0"
 libraryDependencies += "org.scala-lang.modules" %% "scala-parallel-collections" % "1.0.4"
 
-addCommandAlias("startSimulation", "runMain it.unibo.casestudy.launch.Main config.json")
+addCommandAlias("startGradient", "runMain it.unibo.casestudy.launch.Main config.json")
+addCommandAlias("startGradientMulti", "runMain it.unibo.casestudy.launch.Main config-c.json")
+addCommandAlias("startBlockC", "runMain it.unibo.casestudy.launch.Main config-multi.json")

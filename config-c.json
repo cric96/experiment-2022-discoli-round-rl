@@ -6,6 +6,6 @@
   "epsilon": [0.2, 0.05],
   "window": [2, 3, 5],
   "stableWeight": [0.99, 0.98, 0.97],
-  "program": "gradient",
+  "program": "cblock",
   "simulation": "plain"
 }
