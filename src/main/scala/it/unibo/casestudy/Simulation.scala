@@ -3,6 +3,10 @@ package it.unibo.casestudy
 import it.unibo.casestudy.DesIncarnation.ID
 import it.unibo.casestudy.utils.ExperimentTrace
 
+/** A generic interface of simulation
+  * @tparam E
+  *   the data exported from one simulated episode
+  */
 trait Simulation[E] {
   def perform(): E
   final def repeat(times: Int)(progressEvaluation: (E, Int) => Unit): Seq[E] =
@@ -18,5 +22,6 @@ trait Simulation[E] {
 
 object Simulation {
   case class WorldSetting(size: Int, range: Double)
+  // standard export
   type TicksAndOutput = (ExperimentTrace[Map[ID, Int]], ExperimentTrace[Map[ID, Double]])
 }

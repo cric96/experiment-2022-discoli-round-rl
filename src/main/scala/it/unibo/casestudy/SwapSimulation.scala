@@ -1,16 +1,22 @@
 package it.unibo.casestudy
 
 import it.unibo.casestudy.DesIncarnation._
-import it.unibo.casestudy.SwapSimulation.SimulationConfiguration
 import it.unibo.casestudy.Simulation.{TicksAndOutput, WorldSetting}
+import it.unibo.casestudy.SwapSimulation.SimulationConfiguration
 import it.unibo.casestudy.event.ChangeSourceAt
-import it.unibo.casestudy.gui.MiniGui
 import it.unibo.casestudy.utils.Variable.V
-import it.unibo.casestudy.utils.{DesUtils, ExperimentConstant, ExperimentTrace}
+import it.unibo.casestudy.utils.{DesUtils, ExperimentConstant}
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
+/** The simulation in which the system changes the source set at the time config.switchAt. Particularly, at the time
+  * config.swichAt a new source appears (the rightmost in the grid system).
+  * @param fireLogic:
+  *   out the system should launch local rounds
+  * @param config
+  *   the configuration of the simulation
+  */
 class SwapSimulation(fireLogic: ID => RoundEvent, config: SimulationConfiguration) extends Simulation[TicksAndOutput] {
   import config._
   import config.worldSetting._

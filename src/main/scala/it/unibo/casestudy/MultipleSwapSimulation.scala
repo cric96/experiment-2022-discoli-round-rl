@@ -11,6 +11,14 @@ import it.unibo.casestudy.utils.{DesUtils, ExperimentConstant, ExperimentTrace}
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.language.postfixOps
 
+/** The simulation in which the system changes the source set at the time config.switchAt and then remove the added
+  * source at the time config.switchAt * 2. In this case, at the beginning, only the central node exists. Then, at the
+  * switchAt, new four source appears at the border of the grid
+  * @param fireLogic:
+  *   out the system should launch local rounds
+  * @param config
+  *   the configuration of the simulation
+  */
 class MultipleSwapSimulation(fireLogic: ID => RoundEvent, config: MultipleSwapSimulation.SimulationConfiguration)
     extends Simulation[TicksAndOutput] {
   import config._
