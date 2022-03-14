@@ -8,6 +8,14 @@ import scribe.Level
 import it.unibo.casestudy.utils.UnsafeProduct._
 import java.io.File
 
+/** A script used to produce plot and a brief analysis file. By default, it produces:
+  *   - plot of error progression for a certain RL configuration
+  *   - plot of ticks progression for a certain RL configuration
+  *   - a plot for each episode in which are showed the total ticks, the average ticks per seconds, and the error
+  *     percentage and the plot percentage If you pass "sample" as a argument, it produces RL plot only each 50 episode
+  *
+  * the images are stored in img/ the folder name represents the configuration value combination.
+  */
 object Analysis extends App {
   // Prepare
   type PlainData = (Double, Double, Double)
@@ -44,13 +52,8 @@ object Analysis extends App {
   val (_, fixed) = load(allFiles, fixedName, convertPlain).head
   val (_, adHoc) = load(allFiles, adhocName, convertOther).head
 
-  if (os.list(resultFolder).size > 1) {
-    scribe.Logger.root
-      .clearHandlers()
-      .clearModifiers()
-      .withHandler(minimumLevel = Some(Level.Warn))
-      .replace()
-  }
+  LoggerUtil.disableIf(os.list(resultFolder).size > 1)
+
   // One folder for each configuration
   allExperiment(resultFolder).foreach { rlFolder =>
     val experimentName = rlFolder.toIO.getName

@@ -1,6 +1,10 @@
 package it.unibo.casestudy.utils
 
 object UnsafeProduct {
+  /** Utility used to manipulated a product like a tuple
+    * @param p
+    *   the wrapper product
+    */
   implicit class UnsafeProduct(val p: Product) extends AnyVal {
     def _1[T]: T = get(0)
     def _2[T]: T = get(1)

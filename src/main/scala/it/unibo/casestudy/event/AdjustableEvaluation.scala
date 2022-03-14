@@ -8,6 +8,23 @@ import it.unibo.casestudy.utils.ExperimentConstant
 import java.time.Instant
 import scala.concurrent.duration.FiniteDuration
 
+/** Ad adjustable round frequency that tries to reduce the power consumption as much as possible. For doing this, it
+  * reduce the frequency when the current output is less or equals to the previous one.
+  * @param node
+  *   the target
+  * @param program
+  *   the program that should be executed
+  * @param when
+  *   the initial fire moment
+  * @param dt
+  *   the period
+  * @param maxDt
+  *   the maxiumum sleep time
+  * @param startWith
+  *   the initial delta time
+  * @param localData
+  *   the perivious export data
+  */
 case class AdjustableEvaluation(
     node: ID,
     program: EXECUTION,

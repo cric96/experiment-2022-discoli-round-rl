@@ -5,6 +5,9 @@ import it.unibo.scafi.lib.StandardLibrary
 import it.unibo.scafi.simulation.{DiscreteEventSimulation, SpatialSimulation}
 import it.unibo.scafi.space.{BasicSpatialAbstraction, Point3D}
 
+/** ScaFi incarnation (i.e. a type family contained the data and method to devise an aggregate computing program) used
+  * to define des based simulation
+  */
 object DesIncarnation
     extends BasicAbstractSimulationIncarnation
     with SpatialSimulation

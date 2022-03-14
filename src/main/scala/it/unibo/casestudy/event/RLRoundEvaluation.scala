@@ -12,6 +12,22 @@ import scala.concurrent.duration.{FiniteDuration, _}
 import scala.language.postfixOps
 import scala.util.Random
 
+/** Round evaluation that deploys reinforcement learning to tune the round frequency
+  * @param node
+  *   the target node
+  * @param program
+  *   the reference program
+  * @param when
+  *   the initial tick time
+  * @param temporalWindow
+  *   the temporal window used to build the state
+  * @param weightForConvergence
+  *   the weight given for the convergence
+  * @param rlConfig
+  *   the reinforcement learning configuration
+  * @param seed
+  *   the random seed
+  */
 class RLRoundEvaluation(
     val node: ID,
     val program: EXECUTION,
